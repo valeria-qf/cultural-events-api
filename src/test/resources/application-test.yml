@@ -1,12 +1,15 @@
 spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/culturalevents
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
       ddl-auto: update
     open-in-view: false
-  datasource:
-    driver-class-name: org.postgresql.Driver
 
 security:
   jwt:
-    secret: kdkkefnknsrftudmiDWNLSOSIUBEMVSYKFMIIUD
-    expiration-minutes: 120
+    secret: ${SECURITY_JWT_SECRET:kdkkefnknsrftudmiDWNLSOSIUBEMVSYKFMIIUD}
+    expiration-minutes: ${SECURITY_JWT_EXPIRATION_MINUTES:120}
