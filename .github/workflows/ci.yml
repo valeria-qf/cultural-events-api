@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
 jobs:
   build-test:
@@ -36,12 +36,62 @@ jobs:
           java-version: "21"
           cache: maven
 
+      - name: Wait for Postgres
+        run: |
+          for i in {1..30}; do
+            if pg_isready -h localhost -p 5432 -U postgres -d culturalevents; then
+              echo "Postgres is ready!"
+              exit 0
+            fi
+            echo "Waiting for Postgres..."
+            sleep 2
+          done
+          echo "Postgres did not become ready in time"
+          exit 1
+
       - name: Run tests (profile test)
         env:
           SPRING_PROFILES_ACTIVE: test
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/culturalevents
+          SPRING_DATASOURCE_USERNAME: postgres
+          SPRING_DATASOURCE_PASSWORD: postgres
+          SECURITY_JWT_SECRET: kdkkefnknsrftudmiDWNLSOSIUBEMVSYKFMIIUD
+          SECURITY_JWT_EXPIRATION_MINUTES: "120"
         run: mvn -B clean test
 
-      - name: Upload JaCoCo report
+      - name: Print JaCoCo summary (from CSV)
+        if: always()
+        shell: bash
+        run: |
+          CSV="target/site/jacoco/jacoco.csv"
+          if [ ! -f "$CSV" ]; then
+            echo "JaCoCo CSV not found at $CSV"
+            exit 0
+          fi
+
+          echo "== JaCoCo summary =="
+          # CSV header: GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
+          awk -F',' '
+            NR>1 {
+              im+=$4; ic+=$5;
+              bm+=$6; bc+=$7;
+              lm+=$8; lc+=$9;
+              mm+=$12; mc+=$13;
+            }
+            END {
+              ip = (im+ic) ? (100*ic/(im+ic)) : 0;
+              bp = (bm+bc) ? (100*bc/(bm+bc)) : 0;
+              lp = (lm+lc) ? (100*lc/(lm+lc)) : 0;
+              mp = (mm+mc) ? (100*mc/(mm+mc)) : 0;
+              printf("Instruction coverage: %.2f%% (%d/%d)\n", ip, ic, im+ic);
+              printf("Branch coverage:      %.2f%% (%d/%d)\n", bp, bc, bm+bc);
+              printf("Line coverage:        %.2f%% (%d/%d)\n", lp, lc, lm+lc);
+              printf("Method coverage:      %.2f%% (%d/%d)\n", mp, mc, mm+mc);
+            }
+          ' "$CSV"
+
+      - name: Upload JaCoCo HTML report
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: jacoco-report
