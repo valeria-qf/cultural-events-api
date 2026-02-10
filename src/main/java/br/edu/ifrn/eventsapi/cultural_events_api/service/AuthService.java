@@ -8,6 +8,7 @@ import br.edu.ifrn.eventsapi.cultural_events_api.model.User;
 import br.edu.ifrn.eventsapi.cultural_events_api.repository.UserRepository;
 import jakarta.persistence.EntityExistsException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -21,16 +22,31 @@ public class AuthService {
     private final PasswordEncoder encoder;
     private final JwtService jwtService;
 
-    public AuthResponse register(RegisterRequest req) {
+    @Value("${security.admin-key:}")
+    private String adminKey;
+
+    public AuthResponse register(RegisterRequest req, String providedAdminKey) {
         if (userRepository.existsByEmail(req.email())) {
             throw new EntityExistsException("Email already registered");
+        }
+
+        Role roleToSet = Role.USER;
+
+        if (req.role() != null && req.role() != Role.USER) {
+            String key = (providedAdminKey == null) ? null : providedAdminKey.trim();
+
+            if (adminKey == null || adminKey.isBlank() || key == null || !adminKey.equals(key)) {
+                throw new IllegalArgumentException("Not allowed to register with this role");
+            }
+
+            roleToSet = req.role();
         }
 
         User u = User.builder()
                 .name(req.name())
                 .email(req.email())
                 .passwordHash(encoder.encode(req.password()))
-                .role(Role.USER)
+                .role(roleToSet)
                 .build();
 
         u = userRepository.save(u);

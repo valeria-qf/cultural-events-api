@@ -35,7 +35,8 @@ class AuthControllerIT extends IntegrationTestBase {
         var req = new RegisterRequest(
                 "Valéria",
                 "valeria@ifrn.edu.br",
-                "12345678"
+                "12345678",
+                null // role (null = USER por padrão)
         );
 
         mvc.perform(post("/api/v1/auth/register")
@@ -50,7 +51,8 @@ class AuthControllerIT extends IntegrationTestBase {
         var register = new RegisterRequest(
                 "Valéria",
                 "valeria@ifrn.edu.br",
-                "12345678"
+                "12345678",
+                null
         );
 
         mvc.perform(post("/api/v1/auth/register")
@@ -75,7 +77,8 @@ class AuthControllerIT extends IntegrationTestBase {
         var register = new RegisterRequest(
                 "Valéria",
                 "valeria@ifrn.edu.br",
-                "12345678"
+                "12345678",
+                null
         );
 
         mvc.perform(post("/api/v1/auth/register")

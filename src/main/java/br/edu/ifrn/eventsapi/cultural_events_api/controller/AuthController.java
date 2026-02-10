@@ -18,8 +18,11 @@ public class AuthController {
 
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
-    public AuthResponse register(@Valid @RequestBody RegisterRequest req) {
-        return authService.register(req);
+    public AuthResponse register(
+            @Valid @RequestBody RegisterRequest req,
+            @RequestHeader(value = "X-ADMIN-KEY", required = false) String adminKey
+    ) {
+        return authService.register(req, adminKey);
     }
 
     @PostMapping("/login")

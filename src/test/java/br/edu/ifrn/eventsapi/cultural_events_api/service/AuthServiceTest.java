@@ -38,8 +38,7 @@ class AuthServiceTest {
 
     @Test
     void register_shouldCreateUserAndReturnToken() {
-
-        RegisterRequest req = new RegisterRequest("Valéria", "valeria@email.com", "123456");
+        RegisterRequest req = new RegisterRequest("Valéria", "valeria@email.com", "123456", null);
 
         when(userRepository.existsByEmail(req.email())).thenReturn(false);
         when(encoder.encode(req.password())).thenReturn("HASHED");
@@ -52,14 +51,13 @@ class AuthServiceTest {
             return u;
         });
 
-        AuthResponse res = authService.register(req);
+        AuthResponse res = authService.register(req, null);
 
         assertEquals("TOKEN", res.token());
         assertEquals("Bearer", res.tokenType());
         assertEquals(1L, res.userId());
         assertEquals(req.email(), res.email());
         assertEquals(Role.USER.name(), res.role());
-
 
         ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
         verify(userRepository).save(captor.capture());
@@ -75,10 +73,10 @@ class AuthServiceTest {
 
     @Test
     void register_shouldThrowIfEmailAlreadyRegistered() {
-        RegisterRequest req = new RegisterRequest("Valéria", "valeria@email.com", "123456");
+        RegisterRequest req = new RegisterRequest("Valéria", "valeria@email.com", "123456", null);
         when(userRepository.existsByEmail(req.email())).thenReturn(true);
 
-        assertThrows(EntityExistsException.class, () -> authService.register(req));
+        assertThrows(EntityExistsException.class, () -> authService.register(req, null));
 
         verify(userRepository, never()).save(any());
         verify(jwtService, never()).generateToken(anyString(), anyMap());
