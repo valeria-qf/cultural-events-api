@@ -1,0 +1,12 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+  datasource:
+    driver-class-name: org.postgresql.Driver
+
+security:
+  jwt:
+    secret: kdkkefnknsrftudmiDWNLSOSIUBEMVSYKFMIIUD
+    expiration-minutes: 120
