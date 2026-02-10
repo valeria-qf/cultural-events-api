@@ -71,11 +71,11 @@ class EventControllerIT extends IntegrationTestBase {
     }
 
     @Test
-    void create_shouldReturn401_withoutToken() throws Exception {
+    void create_shouldReturn403_withoutToken() throws Exception {
         mvc.perform(post("/api/v1/events")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(createReq())))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
     }
 
     @Test
