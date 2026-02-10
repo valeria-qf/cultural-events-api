@@ -6,6 +6,8 @@ import br.edu.ifrn.eventsapi.cultural_events_api.model.Venue;
 import br.edu.ifrn.eventsapi.cultural_events_api.repository.VenueRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -16,6 +18,7 @@ public class VenueService {
 
     private final VenueRepository venueRepository;
 
+    @CacheEvict(cacheNames = {"venues_list", "venues_by_id"}, allEntries = true)
     public VenueResponse create(VenueCreateRequest req) {
         Venue v = Venue.builder()
                 .name(req.name())
@@ -26,16 +29,19 @@ public class VenueService {
         return toResponse(v);
     }
 
+    @Cacheable(cacheNames = "venues_list")
     public List<VenueResponse> list() {
         return venueRepository.findAll().stream().map(this::toResponse).toList();
     }
 
+    @Cacheable(cacheNames = "venues_by_id", key = "#id")
     public VenueResponse get(Long id) {
         Venue v = venueRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Venue not found: " + id));
         return toResponse(v);
     }
 
+    @CacheEvict(cacheNames = {"venues_list", "venues_by_id"}, allEntries = true)
     public VenueResponse update(Long id, VenueCreateRequest req) {
         Venue v = venueRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Venue not found: " + id));
@@ -46,6 +52,7 @@ public class VenueService {
         return toResponse(v);
     }
 
+    @CacheEvict(cacheNames = {"venues_list", "venues_by_id"}, allEntries = true)
     public void delete(Long id) {
         if (!venueRepository.existsById(id)) {
             throw new EntityNotFoundException("Venue not found: " + id);

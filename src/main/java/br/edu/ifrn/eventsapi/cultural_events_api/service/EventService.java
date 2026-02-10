@@ -6,6 +6,8 @@ import br.edu.ifrn.eventsapi.cultural_events_api.model.Event;
 import br.edu.ifrn.eventsapi.cultural_events_api.repository.EventRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -16,6 +18,7 @@ public class EventService {
 
     private final EventRepository eventRepository;
 
+    @CacheEvict(cacheNames = {"events_list", "events_by_id"}, allEntries = true)
     public EventResponse create(EventCreateRequest req) {
         Event e = Event.builder()
                 .title(req.title())
@@ -28,16 +31,19 @@ public class EventService {
         return toResponse(e);
     }
 
+    @Cacheable(cacheNames = "events_list")
     public List<EventResponse> list() {
         return eventRepository.findAll().stream().map(this::toResponse).toList();
     }
 
+    @Cacheable(cacheNames = "events_by_id", key = "#id")
     public EventResponse get(Long id) {
         Event e = eventRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Event not found: " + id));
         return toResponse(e);
     }
 
+    @CacheEvict(cacheNames = {"events_list", "events_by_id"}, allEntries = true)
     public EventResponse update(Long id, EventCreateRequest req) {
         Event e = eventRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Event not found: " + id));
@@ -52,6 +58,7 @@ public class EventService {
         return toResponse(e);
     }
 
+    @CacheEvict(cacheNames = {"events_list", "events_by_id"}, allEntries = true)
     public void delete(Long id) {
         if (!eventRepository.existsById(id)) {
             throw new EntityNotFoundException("Event not found: " + id);
