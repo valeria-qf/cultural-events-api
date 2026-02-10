@@ -1,0 +1,11 @@
+package br.edu.ifrn.eventsapi.cultural_events_api.dto.request;
+
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+
+public record VenueCreateRequest(
+        @NotBlank String name,
+        @NotBlank String address,
+        @NotNull @Min(1) Integer capacity
+) {}
