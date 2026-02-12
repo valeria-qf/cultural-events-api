@@ -211,56 +211,6 @@ xdg-open target/site/jacoco/index.html
 | `POST` | `/api/v1/reservations/{id}/cancel` | Sim | Cancela reserva |
 | `GET` | `/api/v1/reservations/ticket/{code}` | Sim | Consulta ticket por UUID |
 | `GET` | `/api/v1/reservations/availability/{sessionId}` | Sim | Vagas disponíveis |
-
----
-
-## 📂 Estrutura de Pastas
-
-```text
-src
-├── main
-│   └── java
-│       └── com.seuprojeto
-│           ├── controller
-│           ├── model
-│           ├── repository
-│           ├── security
-│           └── service
-└── test
-    ├── java
-    │   └── com.seuprojeto
-    │       ├── integration  # Testes de Integração
-    │       └── service      # Testes Unitários
-    └── resources
-        └── application-test.yml
-
-```
-
----
-
-## 🐳 Docker Compose (Referência)
-
-Conteúdo do arquivo `docker-compose.yml`:
-
-```yaml
-services:
-  db:
-    image: postgres:16
-    container_name: culturalevents-db
-    environment:
-      POSTGRES_DB: culturalevents
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-
-volumes:
-  pgdata:
-
-```
-
 ---
 
 ## 🤖 CI/CD (GitHub Actions)
