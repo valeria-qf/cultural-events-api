@@ -1,120 +1,107 @@
-````md
 # Cultural Events API
 
-API RESTful para gerenciamento de **eventos culturais**, **locais (venues)**, **sessões** e **reservas**, com **autenticação JWT**, **controle de acesso por perfil**, **cache**, **testes unitários e de integração**.
+API RESTful para gerenciamento de **eventos culturais**, **locais (venues)**, **sessões** e **reservas**. O projeto implementa **autenticação JWT**, **controle de acesso por perfil (RBAC)**, **cache**, **testes unitários e de integração**.
 
 ---
 
-## Tema e justificativa
+## 📌 Tema e Justificativa
 
 **Tema:** Plataforma de Eventos Culturais
 
-**Justificativa:**  
-A aplicação facilita o cadastro, a divulgação e o gerenciamento de eventos culturais, permitindo organizar sessões por local e controlar reservas de forma segura. O projeto aplica conceitos de sistemas corporativos como arquitetura em camadas, regras de negócio centralizadas, validação de dados, segurança, testes automatizados, dockerização e documentação.
+**Justificativa:** A aplicação facilita o cadastro, a divulgação e o gerenciamento de eventos culturais, permitindo organizar sessões por local e controlar reservas de forma segura. O projeto aplica conceitos essenciais de sistemas corporativos, como:
+* Arquitetura em camadas
+* Regras de negócio centralizadas
+* Validação de dados
+* Segurança (Spring Security)
+* Testes automatizados
+* Dockerização
+* Documentação (Swagger)
 
 ---
 
-## Tecnologias utilizadas
+## 🚀 Tecnologias Utilizadas
 
-- Java 21
-- Spring Boot 3
-- Spring Web
-- Spring Data JPA
-- Bean Validation
-- Spring Security + JWT
-- PostgreSQL
-- Swagger / OpenAPI (Springdoc)
-- Cache (Spring Cache)
-- Testes:
-  - JUnit 5
-  - Mockito
-  - Spring Boot Test
-  - MockMvc
-- JaCoCo (cobertura de testes)
-- Docker
+* **Java 21**
+* **Spring Boot 3** (Web, Data JPA, Validation, Security, Cache)
+* **PostgreSQL**
+* **JWT** (JSON Web Token)
+* **Swagger / OpenAPI** (Springdoc)
+* **Docker** & **Docker Compose**
+* **Testes:** JUnit 5, Mockito, Spring Boot Test, MockMvc
+* **JaCoCo** (Cobertura de testes)
 
 ---
 
-## Arquitetura em camadas
+## 🏗️ Arquitetura
 
-- **model** – Entidades JPA
-- **repository** – Persistência com Spring Data JPA
-- **service** – Regras de negócio
-- **controller** – Endpoints REST
-- **security** – Autenticação e autorização JWT
+O projeto segue uma arquitetura em camadas bem definida:
 
----
-
-## Regras de negócio principais
-
-- Reservas só podem ser criadas se houver assentos disponíveis.
-- Capacidade é definida pelo venue da sessão.
-- Cancelamento de reserva altera o status para `CANCELED`.
-- Tickets podem ser consultados via código UUID.
-- Operações administrativas exigem autenticação e perfil adequado.
+* `model` – Entidades JPA (Domínio)
+* `repository` – Persistência de dados (Spring Data JPA)
+* `service` – Regras de negócio
+* `controller` – Endpoints REST (Camada de apresentação)
+* `security` – Configurações de Autenticação e Autorização JWT
 
 ---
 
-## Segurança (JWT)
+## ⚙️ Regras de Negócio Principais
 
-- Autenticação baseada em **JWT**
-- Token retornado no login e registro
-- Perfis disponíveis:
-  - `ADMIN`
-  - `ORGANIZER`
-  - `USER`
-
-### Regras de acesso (resumo)
-
-- Rotas públicas:
-  - `/api/v1/auth/**`
-  - GET de eventos, venues e sessions
-- Rotas protegidas:
-  - CRUD de eventos, venues e sessions → `ADMIN` ou `ORGANIZER`
-  - Reservas → usuário autenticado
+1.  **Reservas:** Só podem ser criadas se houver assentos disponíveis na sessão.
+2.  **Capacidade:** É definida estritamente pelo *venue* (local) onde a sessão ocorre.
+3.  **Cancelamento:** O cancelamento de uma reserva altera seu status para `CANCELED` e libera o assento.
+4.  **Tickets:** Podem ser consultados via código único (UUID).
+5.  **Segurança:** Operações de escrita (criar/editar/deletar eventos) exigem perfil administrativo.
 
 ---
 
-## Cache
+## 🔒 Segurança (JWT)
 
-Cache aplicado apenas em **GETs importantes**, evitando impacto em escrita:
+A autenticação é baseada em Tokens JWT.
 
-- Events:
-  - `GET /api/v1/events`
-  - `GET /api/v1/events/{id}`
-- Venues:
-  - `GET /api/v1/venues`
-  - `GET /api/v1/venues/{id}`
-- Sessions:
-  - `GET /api/v1/sessions`
-  - `GET /api/v1/sessions/{id}`
-  - `GET /api/v1/sessions?eventId=`
+### Perfis de Acesso
+* `ADMIN`
+* `ORGANIZER`
+* `USER`
 
-Caches são invalidados automaticamente em operações de escrita (POST, PUT, DELETE).
+### Regras de Acesso
+* **Público:** Login, Registro, Listagem de Eventos/Sessões.
+* **Admin/Organizer:** CRUD de Eventos, Venues e Sessões.
+* **Autenticado (User):** Criar e gerenciar suas próprias reservas.
 
 ---
 
-## Como executar o projeto (local)
+## ⚡ Cache
+
+O cache (Spring Cache) é aplicado em rotas de leitura frequente (`GET`) para otimizar a performance e reduzir a carga no banco de dados.
+
+* **Entidades cacheadas:** Events, Venues, Sessions.
+* **Invalidação:** O cache é limpo automaticamente (evict) quando ocorre uma operação de escrita (POST, PUT, DELETE) na respectiva entidade.
+
+---
+
+## 📦 Como Executar o Projeto
 
 ### Pré-requisitos
+* Java 21
+* Maven
+* Docker (Opcional, mas recomendado para o banco de dados)
 
-- Java 21
-- Maven
-- Docker (opcional, para banco)
+### 1. Subir o Banco de Dados (Docker)
 
-### Subir o banco com Docker
+Utilize o arquivo `docker-compose.yml` para subir o PostgreSQL:
 
 ```bash
 docker compose up -d
-````
 
-> Caso a porta 5432 esteja ocupada, ajuste no `docker-compose.yml`.
+```
 
----
+> **Nota:** O container rodará na porta `5432`. Certifique-se de que ela está livre.
 
-### Configuração (`application.yml`)
+### 2. Configuração (`application.yml`)
 
-```yml
+Verifique se as configurações de ambiente batem com o seu banco local:
+
+```yaml
 spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/culturalevents
@@ -128,175 +115,116 @@ spring:
 
 security:
   jwt:
-    secret: ${SECURITY_JWT_SECRET:kdkkefnknsrftudmiDWNLSOSIUBEMVSYKFMIIUD}
-    expiration-minutes: ${SECURITY_JWT_EXPIRATION_MINUTES:120}
+    secret: ${SECURITY_JWT_SECRET:sua_chave_secreta_aqui_com_pelo_menos_256_bits}
+    expiration-minutes: 120
 
-springdoc:
-  swagger-ui:
-    path: /swagger
 ```
 
----
+### 3. Rodar a Aplicação
 
-### Rodar a aplicação
+Na raiz do projeto, execute:
 
 ```bash
 mvn spring-boot:run
+
 ```
 
 ---
 
-## Swagger
+## 📚 Documentação da API (Swagger)
 
-* UI: `http://localhost:8080/swagger`
-* OpenAPI JSON: `http://localhost:8080/v3/api-docs`
+Com a aplicação rodando, acesse:
+
+* **Swagger UI:** [http://localhost:8080/swagger](https://www.google.com/search?q=http://localhost:8080/swagger)
+* **OpenAPI JSON:** [http://localhost:8080/v3/api-docs](https://www.google.com/search?q=http://localhost:8080/v3/api-docs)
 
 ---
 
-## Testes
+## 🧪 Testes
 
-### Executar testes
+### Executar todos os testes
 
 ```bash
 mvn test
+
 ```
 
-### Testes de integração
+### Tipos de Testes
 
-* Localizados em: `src/test/java/.../integration`
-* Executados automaticamente com `mvn test`
-* Utilizam **MockMvc** e contexto real da aplicação
+* **Unitários (`src/test/java/.../service`):** Utilizam Mockito para isolar a camada de serviço.
+* **Integração (`src/test/java/.../integration`):** Utilizam `MockMvc` e sobem o contexto do Spring para testar os endpoints e o fluxo completo.
 
-### Testes unitários
+### Cobertura de Código (JaCoCo)
 
-* Localizados em: `src/test/java/.../service`
-* Utilizam **Mockito** para isolamento da camada de serviço
+Após rodar os testes, o relatório é gerado em:
+`target/site/jacoco/index.html`
 
----
-
-## Cobertura de testes (JaCoCo)
-
-Após rodar:
-
-```bash
-mvn test
-```
-
-Relatório HTML:
-
-```text
-target/site/jacoco/index.html
-```
-
-Abrir no Linux:
+Para abrir no Linux:
 
 ```bash
 xdg-open target/site/jacoco/index.html
+
 ```
 
 ---
 
-## Endpoints
+## 📡 Endpoints Principais
 
 ### Auth
 
-| Método | Rota                    | Auth | Descrição                   |
-| ------ | ----------------------- | ---- | --------------------------- |
-| POST   | `/api/v1/auth/register` | Não  | Cadastro e retorno de token |
-| POST   | `/api/v1/auth/login`    | Não  | Login e retorno de token    |
+| Método | Rota | Auth | Descrição |
+| --- | --- | --- | --- |
+| `POST` | `/api/v1/auth/register` | Não | Cadastro de usuário |
+| `POST` | `/api/v1/auth/login` | Não | Login e retorno de Token |
 
 ### Events
 
-| Método | Rota                  | Auth | Perfil          | Descrição       |
-| ------ | --------------------- | ---- | --------------- | --------------- |
-| POST   | `/api/v1/events`      | Sim  | ADMIN/ORGANIZER | Cria evento     |
-| GET    | `/api/v1/events`      | Não  | Público         | Lista eventos   |
-| GET    | `/api/v1/events/{id}` | Não  | Público         | Detalha evento  |
-| PUT    | `/api/v1/events/{id}` | Sim  | ADMIN/ORGANIZER | Atualiza evento |
-| DELETE | `/api/v1/events/{id}` | Sim  | ADMIN/ORGANIZER | Remove evento   |
+| Método | Rota | Auth | Perfil | Descrição |
+| --- | --- | --- | --- | --- |
+| `POST` | `/api/v1/events` | Sim | ADMIN/ORG | Cria evento |
+| `GET` | `/api/v1/events` | Não | Público | Lista eventos |
+| `GET` | `/api/v1/events/{id}` | Não | Público | Detalhes do evento |
+| `PUT` | `/api/v1/events/{id}` | Sim | ADMIN/ORG | Atualiza evento |
+| `DELETE` | `/api/v1/events/{id}` | Sim | ADMIN/ORG | Remove evento |
 
-### Venues
+### Venues (Locais)
 
-| Método | Rota                  | Auth | Perfil          | Descrição      |
-| ------ | --------------------- | ---- | --------------- | -------------- |
-| POST   | `/api/v1/venues`      | Sim  | ADMIN/ORGANIZER | Cria venue     |
-| GET    | `/api/v1/venues`      | Não  | Público         | Lista venues   |
-| GET    | `/api/v1/venues/{id}` | Não  | Público         | Detalha venue  |
-| PUT    | `/api/v1/venues/{id}` | Sim  | ADMIN/ORGANIZER | Atualiza venue |
-| DELETE | `/api/v1/venues/{id}` | Sim  | ADMIN/ORGANIZER | Remove venue   |
+| Método | Rota | Auth | Perfil | Descrição |
+| --- | --- | --- | --- | --- |
+| `POST` | `/api/v1/venues` | Sim | ADMIN/ORG | Cria venue |
+| `GET` | `/api/v1/venues` | Não | Público | Lista venues |
+| `PUT` | `/api/v1/venues/{id}` | Sim | ADMIN/ORG | Atualiza venue |
 
 ### Sessions
 
-| Método | Rota                    | Auth | Perfil          | Descrição       |
-| ------ | ----------------------- | ---- | --------------- | --------------- |
-| POST   | `/api/v1/sessions`      | Sim  | ADMIN/ORGANIZER | Cria sessão     |
-| GET    | `/api/v1/sessions`      | Não  | Público         | Lista sessões   |
-| GET    | `/api/v1/sessions/{id}` | Não  | Público         | Detalha sessão  |
-| PUT    | `/api/v1/sessions/{id}` | Sim  | ADMIN/ORGANIZER | Atualiza sessão |
-| DELETE | `/api/v1/sessions/{id}` | Sim  | ADMIN/ORGANIZER | Remove sessão   |
+| Método | Rota | Auth | Perfil | Descrição |
+| --- | --- | --- | --- | --- |
+| `POST` | `/api/v1/sessions` | Sim | ADMIN/ORG | Cria sessão |
+| `GET` | `/api/v1/sessions` | Não | Público | Lista sessões |
 
 ### Reservations
 
-| Método | Rota                                            | Auth | Perfil      | Descrição                   |
-| ------ | ----------------------------------------------- | ---- | ----------- | --------------------------- |
-| POST   | `/api/v1/reservations`                          | Sim  | Autenticado | Cria reserva                |
-| GET    | `/api/v1/reservations`                          | Sim  | Autenticado | Lista reservas              |
-| GET    | `/api/v1/reservations/{id}`                     | Sim  | Autenticado | Detalha reserva             |
-| POST   | `/api/v1/reservations/{id}/cancel`              | Sim  | Autenticado | Cancela reserva             |
-| GET    | `/api/v1/reservations/ticket/{code}`            | Sim  | Autenticado | Consulta ticket por UUID    |
-| GET    | `/api/v1/reservations/availability/{sessionId}` | Sim  | Autenticado | Disponibilidade de assentos |
-
+| Método | Rota | Auth | Descrição |
+| --- | --- | --- | --- |
+| `POST` | `/api/v1/reservations` | Sim | Cria reserva |
+| `GET` | `/api/v1/reservations` | Sim | Minhas reservas |
+| `POST` | `/api/v1/reservations/{id}/cancel` | Sim | Cancela reserva |
+| `GET` | `/api/v1/reservations/ticket/{code}` | Sim | Consulta ticket por UUID |
+| `GET` | `/api/v1/reservations/availability/{sessionId}` | Sim | Vagas disponíveis |
 ---
 
-## Estrutura de pastas
+## 🤖 CI/CD (GitHub Actions)
 
-```
-src/main/java
- ├── model
- ├── repository
- ├── service
- ├── controller
- └── security
+Este projeto possui uma pipeline de Integração Contínua (CI) com **GitHub Actions** para garantir que o código compile e que os testes passem a cada push/PR.
 
-src/test/java
- ├── service        (testes unitários)
- └── integration    (testes de integração)
+### O que a pipeline faz
 
-src/test/resources
- └── application-test.yml
-```
+- Checkout do repositório
+- Setup do Java 21
+- Sobe um PostgreSQL (service container)
+- Executa `mvn clean test` (inclui unitários + integração)
+- Gera relatório de cobertura **JaCoCo**
+- Faz upload do relatório como artifact no GitHub
 
----
 
-## Docker (PostgreSQL)
 
-```yml
-services:
-  db:
-    image: postgres:16
-    container_name: culturalevents-db
-    environment:
-      POSTGRES_DB: culturalevents
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-
-volumes:
-  pgdata:
-```
-
----
-
-## CI/CD
-
-Pipeline prevista com GitHub Actions para:
-
-* Build do projeto
-* Execução dos testes
-* Relatório de cobertura (JaCoCo)
-
-```
-```
