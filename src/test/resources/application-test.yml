@@ -1,13 +1,7 @@
 spring:
-  datasource:
-    url: jdbc:postgresql://localhost:5432/culturalevents
-    username: postgres
-    password: postgres
-    driver-class-name: org.postgresql.Driver
-
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: create-drop
     open-in-view: false
 
   autoconfigure:
