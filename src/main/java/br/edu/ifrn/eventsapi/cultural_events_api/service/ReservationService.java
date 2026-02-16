@@ -21,7 +21,7 @@ public class ReservationService {
     private final SessionService sessionService;
 
     @Transactional
-    public ReservationResponse create(ReservationCreateRequest req) {
+    public ReservationResponse create(ReservationCreateRequest req, String customerName, String customerEmail) {
         Session session = sessionService.findEntity(req.sessionId());
 
         int capacity = session.getVenue().getCapacity();
@@ -34,8 +34,8 @@ public class ReservationService {
 
         Reservation r = new Reservation();
         r.setSession(session);
-        r.setCustomerName(req.customerName());
-        r.setCustomerEmail(req.customerEmail());
+        r.setCustomerName(customerName);
+        r.setCustomerEmail(customerEmail);
         r.setQuantity(req.quantity());
         r.setStatus(ReservationStatus.ACTIVE);
 

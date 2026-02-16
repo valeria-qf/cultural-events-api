@@ -7,6 +7,8 @@ import br.edu.ifrn.eventsapi.cultural_events_api.service.ReservationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,8 +23,22 @@ public class ReservationController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public ReservationResponse create(@Valid @RequestBody ReservationCreateRequest req) {
-        return reservationService.create(req);
+    public ReservationResponse create(@Valid @RequestBody ReservationCreateRequest req,
+                                      @AuthenticationPrincipal Jwt jwt) {
+
+        String email = firstNonBlank(
+                jwt.getClaimAsString("email"),
+                jwt.getClaimAsString("preferred_username")
+        );
+
+        String name = firstNonBlank(
+                jwt.getClaimAsString("name"),
+                jwt.getClaimAsString("given_name"),
+                jwt.getClaimAsString("preferred_username"),
+                email
+        );
+
+        return reservationService.create(req, name, email);
     }
 
     @GetMapping
@@ -48,5 +64,12 @@ public class ReservationController {
     @GetMapping("/availability/{sessionId}")
     public AvailabilityResponse availability(@PathVariable Long sessionId) {
         return reservationService.availability(sessionId);
+    }
+
+    private static String firstNonBlank(String... values) {
+        for (String v : values) {
+            if (v != null && !v.isBlank()) return v;
+        }
+        return null;
     }
 }
