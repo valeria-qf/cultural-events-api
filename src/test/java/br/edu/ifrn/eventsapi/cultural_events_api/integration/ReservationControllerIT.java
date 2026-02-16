@@ -5,12 +5,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -31,15 +34,37 @@ class ReservationControllerIT extends IntegrationTestBase {
 
     private static SecurityMockMvcRequestPostProcessors.JwtRequestPostProcessor
     jwtWithRealmRoles(String... roles) {
-        return jwt().jwt(j -> j.claim("realm_access", Map.of("roles", List.of(roles))));
+
+        List<SimpleGrantedAuthority> authorities = Stream.of(roles)
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .map(r -> r.startsWith("ROLE_") ? r : "ROLE_" + r)
+                .map(SimpleGrantedAuthority::new)
+                .toList();
+
+        return jwt()
+                .jwt(j -> j.claim("realm_access", Map.of("roles", List.of(roles))))
+                .authorities(authorities);
     }
 
     private static SecurityMockMvcRequestPostProcessors.JwtRequestPostProcessor
     jwtWithRolesAndClaims(List<String> roles, Map<String, Object> claims) {
-        return jwt().jwt(j -> {
-            j.claim("realm_access", Map.of("roles", roles));
-            claims.forEach(j::claim);
-        });
+
+        List<SimpleGrantedAuthority> authorities = roles.stream()
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .map(r -> r.startsWith("ROLE_") ? r : "ROLE_" + r)
+                .map(SimpleGrantedAuthority::new)
+                .toList();
+
+        return jwt()
+                .jwt(j -> {
+                    j.claim("realm_access", Map.of("roles", roles));
+                    claims.forEach(j::claim);
+                })
+                .authorities(authorities);
     }
 
     @Test

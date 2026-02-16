@@ -9,7 +9,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -19,18 +19,17 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-class EventControllerIT extends IntegrationTestBase {
+class SessionControllerIT extends IntegrationTestBase {
 
     @Autowired MockMvc mockMvc;
     @Autowired ObjectMapper objectMapper;
 
     private String createBody() throws Exception {
         Map<String, Object> body = Map.of(
-                "title", "Evento Teste",
-                "description", "desc",
-                "category", "Tech",
-                "startDate", LocalDate.now().plusDays(1).toString(),
-                "endDate", LocalDate.now().plusDays(2).toString()
+                "eventId", 1,
+                "startDateTime", LocalDateTime.now().plusDays(1).withSecond(0).withNano(0).toString(),
+                "endDateTime", LocalDateTime.now().plusDays(1).plusHours(2).withSecond(0).withNano(0).toString(),
+                "capacity", 50
         );
         return objectMapper.writeValueAsString(body);
     }
@@ -53,13 +52,26 @@ class EventControllerIT extends IntegrationTestBase {
 
     @Test
     void list_should_be_public() throws Exception {
-        mockMvc.perform(get("/api/v1/events"))
+        mockMvc.perform(get("/api/v1/sessions"))
                 .andExpect(status().isOk());
     }
 
     @Test
+    void list_by_event_should_be_public() throws Exception {
+        mockMvc.perform(get("/api/v1/sessions").param("eventId", "1"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void get_should_be_public() throws Exception {
+        mockMvc.perform(get("/api/v1/sessions/999999"))
+                .andExpect(status().isNotEqualTo(401))
+                .andExpect(status().isNotEqualTo(403));
+    }
+
+    @Test
     void create_should_return_401_without_token() throws Exception {
-        mockMvc.perform(post("/api/v1/events")
+        mockMvc.perform(post("/api/v1/sessions")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(createBody()))
                 .andExpect(status().isUnauthorized());
@@ -67,7 +79,7 @@ class EventControllerIT extends IntegrationTestBase {
 
     @Test
     void create_should_return_403_for_user_role() throws Exception {
-        mockMvc.perform(post("/api/v1/events")
+        mockMvc.perform(post("/api/v1/sessions")
                         .with(jwtWithRealmRoles("USER"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(createBody()))
@@ -76,7 +88,7 @@ class EventControllerIT extends IntegrationTestBase {
 
     @Test
     void create_should_allow_admin() throws Exception {
-        mockMvc.perform(post("/api/v1/events")
+        mockMvc.perform(post("/api/v1/sessions")
                         .with(jwtWithRealmRoles("ADMIN"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(createBody()))
@@ -85,10 +97,58 @@ class EventControllerIT extends IntegrationTestBase {
 
     @Test
     void create_should_allow_organizer() throws Exception {
-        mockMvc.perform(post("/api/v1/events")
+        mockMvc.perform(post("/api/v1/sessions")
                         .with(jwtWithRealmRoles("ORGANIZER"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(createBody()))
                 .andExpect(status().isCreated());
+    }
+
+    @Test
+    void update_should_return_401_without_token() throws Exception {
+        mockMvc.perform(put("/api/v1/sessions/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody()))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void update_should_return_403_for_user_role() throws Exception {
+        mockMvc.perform(put("/api/v1/sessions/1")
+                        .with(jwtWithRealmRoles("USER"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void update_should_allow_admin() throws Exception {
+        mockMvc.perform(put("/api/v1/sessions/1")
+                        .with(jwtWithRealmRoles("ADMIN"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody()))
+                .andExpect(status().isNotEqualTo(401))
+                .andExpect(status().isNotEqualTo(403));
+    }
+
+    @Test
+    void delete_should_return_401_without_token() throws Exception {
+        mockMvc.perform(delete("/api/v1/sessions/1"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void delete_should_return_403_for_user_role() throws Exception {
+        mockMvc.perform(delete("/api/v1/sessions/1")
+                        .with(jwtWithRealmRoles("USER")))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void delete_should_allow_admin() throws Exception {
+        mockMvc.perform(delete("/api/v1/sessions/1")
+                        .with(jwtWithRealmRoles("ADMIN")))
+                .andExpect(status().isNotEqualTo(401))
+                .andExpect(status().isNotEqualTo(403));
     }
 }
