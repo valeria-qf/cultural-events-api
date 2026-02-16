@@ -24,6 +24,10 @@ public abstract class IntegrationTestBase {
             .withDatabaseName("culturalevents")
             .withUsername("postgres")
             .withPassword("postgres");
+    static final PostgreSQLContainer<?> POSTGRES =
+                    .withDatabaseName("culturalevents")
+                    .withUsername("postgres")
+                    .withPassword("postgres");
 
     @DynamicPropertySource
     static void props(DynamicPropertyRegistry r) {
