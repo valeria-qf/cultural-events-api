@@ -26,8 +26,10 @@ services:
       KC_HTTP_ENABLED: "true"
       KC_HOSTNAME_STRICT: "false"
       KC_HOSTNAME_STRICT_HTTPS: "false"
-      KC_PROXY_HEADERS: "xforwarded"
-    command: ["start-dev"]
+
+      KC_HOSTNAME_URL: "http://138.197.81.35:8081"
+      KC_HOSTNAME_PORT: "8081"
+    command: [ "start-dev" ]
     ports:
       - "8081:8080"
 
