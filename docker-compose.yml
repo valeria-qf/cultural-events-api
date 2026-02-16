@@ -21,11 +21,11 @@ services:
       KC_DB_PASSWORD: ${DB_PASSWORD}
 
       KC_HTTP_ENABLED: "true"
-      KC_HOSTNAME: "138.197.81.35"
-      KC_HOSTNAME_PORT: "8081"
+      KC_HOSTNAME_URL: "http://138.197.81.35:8081"
+      KC_PROXY: "edge"
       KC_HOSTNAME_STRICT: "false"
       KC_HOSTNAME_STRICT_HTTPS: "false"
-    command: ["start-dev"]
+    command: [ "start-dev" ]
     ports:
       - "8081:8080"
 
