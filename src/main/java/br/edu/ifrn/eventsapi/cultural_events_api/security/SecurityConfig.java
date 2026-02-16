@@ -26,7 +26,11 @@ public class SecurityConfig {
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
                                 "/swagger",
-                                "/swagger/**"
+                                "/swagger/**",
+                                "/swagger-ui/oauth2-redirect.html",
+                                "/swagger/oauth2-redirect.html",
+                                "/swaggerger/oauth2-redirect.html",
+                                "/error"
                         ).permitAll()
 
                         .requestMatchers(
