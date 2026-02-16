@@ -14,12 +14,16 @@ class KeycloakRoleConverterTest {
     private final KeycloakRoleConverter converter = new KeycloakRoleConverter();
 
     private Jwt jwtWithClaims(Map<String, Object> claims) {
+        Map<String, Object> safeClaims = (claims == null || claims.isEmpty())
+                ? Map.of("sub", "test-user")
+                : claims;
+
         return new Jwt(
                 "token-value",
                 Instant.now(),
                 Instant.now().plusSeconds(3600),
                 Map.of("alg", "none"),
-                claims
+                safeClaims
         );
     }
 
@@ -95,8 +99,8 @@ class KeycloakRoleConverterTest {
     }
 
     @Test
-    void should_return_empty_when_no_claims_present() {
-        Jwt jwt = jwtWithClaims(Map.of());
+    void should_return_empty_when_no_roles_claims_present() {
+        Jwt jwt = jwtWithClaims(Map.of("sub", "test-user"));
 
         Set<String> auths = toAuthorityStrings(converter.convert(jwt));
 
