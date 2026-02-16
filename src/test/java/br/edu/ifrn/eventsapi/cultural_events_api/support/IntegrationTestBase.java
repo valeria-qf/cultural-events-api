@@ -20,11 +20,8 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 public abstract class IntegrationTestBase {
 
     @Container
-    static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16")
-            .withDatabaseName("culturalevents")
-            .withUsername("postgres")
-            .withPassword("postgres");
     static final PostgreSQLContainer<?> POSTGRES =
+            new PostgreSQLContainer<>("postgres:16")
                     .withDatabaseName("culturalevents")
                     .withUsername("postgres")
                     .withPassword("postgres");
