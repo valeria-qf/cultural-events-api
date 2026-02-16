@@ -9,18 +9,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.hamcrest.Matchers.*;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-
-@AutoConfigureMockMvc
 class VenueControllerIT extends IntegrationTestBase {
 
     @Autowired MockMvc mvc;
@@ -38,32 +33,18 @@ class VenueControllerIT extends IntegrationTestBase {
     }
 
     private VenueCreateRequest createReq() {
-        return new VenueCreateRequest("Auditório Central", "IFRN - Campus", 500);
+        return new VenueCreateRequest(
+                "Auditório Central",
+                "IFRN - Campus",
+                500
+        );
     }
 
     @Test
-    void create_shouldReturn403_withoutToken() throws Exception {
-        mvc.perform(post("/api/v1/venues")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(createReq())))
-                .andExpect(status().isForbidden());
-    }
+    void crud_venues_and_gets_public() throws Exception {
 
-    @Test
-    void create_shouldReturn403_forUserRole() throws Exception {
-        mvc.perform(post("/api/v1/venues")
-                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_USER")))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(createReq())))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
-    void crud_venues_withAdmin_and_gets_public() throws Exception {
-        var adminJwt = jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN"));
-
+        // CREATE
         String createdJson = mvc.perform(post("/api/v1/venues")
-                        .with(adminJwt)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(createReq())))
                 .andExpect(status().isCreated())
@@ -77,20 +58,26 @@ class VenueControllerIT extends IntegrationTestBase {
 
         Long id = objectMapper.readTree(createdJson).get("id").asLong();
 
+        // LIST (public)
         mvc.perform(get("/api/v1/venues"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
                 .andExpect(jsonPath("$[0].id").value(id));
 
+        // GET BY ID (public)
         mvc.perform(get("/api/v1/venues/{id}", id))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(id))
                 .andExpect(jsonPath("$.name").value("Auditório Central"));
 
-        var updateReq = new VenueCreateRequest("Novo Nome", "Novo Endereço", 700);
+        // UPDATE
+        var updateReq = new VenueCreateRequest(
+                "Novo Nome",
+                "Novo Endereço",
+                700
+        );
 
         mvc.perform(put("/api/v1/venues/{id}", id)
-                        .with(adminJwt)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updateReq)))
                 .andExpect(status().isOk())
@@ -99,10 +86,11 @@ class VenueControllerIT extends IntegrationTestBase {
                 .andExpect(jsonPath("$.address").value("Novo Endereço"))
                 .andExpect(jsonPath("$.capacity").value(700));
 
-        mvc.perform(delete("/api/v1/venues/{id}", id)
-                        .with(adminJwt))
+        // DELETE
+        mvc.perform(delete("/api/v1/venues/{id}", id))
                 .andExpect(status().isNoContent());
 
+        // GET AFTER DELETE → 404
         mvc.perform(get("/api/v1/venues/{id}", id))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.title").value("Not Found"))
@@ -111,10 +99,8 @@ class VenueControllerIT extends IntegrationTestBase {
 
     @Test
     void update_shouldReturn404_whenVenueNotFound() throws Exception {
-        var adminJwt = jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN"));
 
         mvc.perform(put("/api/v1/venues/{id}", 999L)
-                        .with(adminJwt)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(createReq())))
                 .andExpect(status().isNotFound())

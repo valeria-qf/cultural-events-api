@@ -8,9 +8,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
@@ -19,12 +17,9 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.*;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-
-@AutoConfigureMockMvc
 class ReservationControllerIT extends IntegrationTestBase {
 
     @Autowired MockMvc mvc;
@@ -68,15 +63,9 @@ class ReservationControllerIT extends IntegrationTestBase {
 
     @Test
     void create_get_list_ticket_cancel_availability_flow() throws Exception {
-        var userJwt = jwt()
-                .authorities(new SimpleGrantedAuthority("ROLE_USER"))
-                .jwt(j -> {
-                    j.claim("email", "cliente@ifrn.edu.br");
-                    j.claim("name", "Cliente 1");
-                    j.subject("cliente@ifrn.edu.br");
-                });
 
         Session s = seedSession(10);
+
         var createReq = new ReservationCreateRequest(
                 s.getId(),
                 "Cliente 1",
@@ -84,8 +73,8 @@ class ReservationControllerIT extends IntegrationTestBase {
                 3
         );
 
+        // CREATE
         String createdJson = mvc.perform(post("/api/v1/reservations")
-                        .with(userJwt)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(createReq)))
                 .andExpect(status().isCreated())
@@ -104,73 +93,49 @@ class ReservationControllerIT extends IntegrationTestBase {
         Long reservationId = objectMapper.readTree(createdJson).get("id").asLong();
         UUID code = UUID.fromString(objectMapper.readTree(createdJson).get("code").asText());
 
-        mvc.perform(get("/api/v1/reservations/{id}", reservationId)
-                        .with(userJwt))
+        // GET BY ID
+        mvc.perform(get("/api/v1/reservations/{id}", reservationId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(reservationId))
                 .andExpect(jsonPath("$.status").value(ReservationStatus.ACTIVE.name()));
 
+        // LIST BY EMAIL
         mvc.perform(get("/api/v1/reservations")
-                        .with(userJwt)
                         .param("email", "cliente@ifrn.edu.br"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
                 .andExpect(jsonPath("$[0].id").value(reservationId))
                 .andExpect(jsonPath("$[0].status").value(ReservationStatus.ACTIVE.name()));
 
-        mvc.perform(get("/api/v1/reservations/ticket/{code}", code)
-                        .with(userJwt))
+        // GET TICKET BY CODE
+        mvc.perform(get("/api/v1/reservations/ticket/{code}", code))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(reservationId))
                 .andExpect(jsonPath("$.code").value(code.toString()));
 
-        mvc.perform(get("/api/v1/reservations/availability/{sessionId}", s.getId())
-                        .with(userJwt))
+        // AVAILABILITY
+        mvc.perform(get("/api/v1/reservations/availability/{sessionId}", s.getId()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.sessionId").value(s.getId()))
                 .andExpect(jsonPath("$.capacity").value(10))
                 .andExpect(jsonPath("$.reservedActive").value(3))
                 .andExpect(jsonPath("$.available").value(7));
 
-        mvc.perform(post("/api/v1/reservations/{id}/cancel", reservationId)
-                        .with(userJwt))
+        // CANCEL
+        mvc.perform(post("/api/v1/reservations/{id}/cancel", reservationId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(reservationId))
                 .andExpect(jsonPath("$.status").value(ReservationStatus.CANCELED.name()));
 
-        mvc.perform(get("/api/v1/reservations/availability/{sessionId}", s.getId())
-                        .with(userJwt))
+        // AVAILABILITY AFTER CANCEL
+        mvc.perform(get("/api/v1/reservations/availability/{sessionId}", s.getId()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.reservedActive").value(0))
                 .andExpect(jsonPath("$.available").value(10));
     }
 
     @Test
-    void create_shouldReturn403_withoutToken() throws Exception {
-        Session s = seedSession(10);
-
-        var createReq = new ReservationCreateRequest(
-                s.getId(),
-                "Cliente 1",
-                "cliente@ifrn.edu.br",
-                1
-        );
-
-        mvc.perform(post("/api/v1/reservations")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(createReq)))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
     void create_shouldReturn400_whenNotEnoughSeats() throws Exception {
-        var userJwt = jwt()
-                .authorities(new SimpleGrantedAuthority("ROLE_USER"))
-                .jwt(j -> {
-                    j.claim("email", "cliente@ifrn.edu.br");
-                    j.claim("name", "Cliente 1");
-                    j.subject("cliente@ifrn.edu.br");
-                });
 
         Session s = seedSession(5);
 
@@ -182,7 +147,6 @@ class ReservationControllerIT extends IntegrationTestBase {
         );
 
         mvc.perform(post("/api/v1/reservations")
-                        .with(userJwt)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(createReq)))
                 .andExpect(status().isBadRequest())

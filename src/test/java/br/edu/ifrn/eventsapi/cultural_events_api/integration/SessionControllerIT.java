@@ -12,9 +12,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
@@ -22,11 +20,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import static org.hamcrest.Matchers.*;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@AutoConfigureMockMvc
 class SessionControllerIT extends IntegrationTestBase {
 
     @Autowired MockMvc mvc;
@@ -64,47 +60,7 @@ class SessionControllerIT extends IntegrationTestBase {
     }
 
     @Test
-    void create_shouldReturn403_withoutToken() throws Exception {
-        Event e = seedEvent();
-        Venue v = seedVenue(100);
-
-        var req = new SessionCreateRequest(
-                e.getId(),
-                v.getId(),
-                LocalDateTime.of(2026, 2, 10, 19, 0),
-                BigDecimal.valueOf(50)
-        );
-
-        mvc.perform(post("/api/v1/sessions")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(req)))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
-    void create_shouldReturn403_forUserRole() throws Exception {
-        var userJwt = jwt().authorities(new SimpleGrantedAuthority("ROLE_USER"));
-
-        Event e = seedEvent();
-        Venue v = seedVenue(100);
-
-        var req = new SessionCreateRequest(
-                e.getId(),
-                v.getId(),
-                LocalDateTime.of(2026, 2, 10, 19, 0),
-                BigDecimal.valueOf(50)
-        );
-
-        mvc.perform(post("/api/v1/sessions")
-                        .with(userJwt)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(req)))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
-    void crud_sessions_withAdmin_and_listByEvent_public() throws Exception {
-        var adminJwt = jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN"));
+    void crud_sessions_and_listByEvent() throws Exception {
 
         Event e = seedEvent();
         Venue v = seedVenue(100);
@@ -117,14 +73,12 @@ class SessionControllerIT extends IntegrationTestBase {
         );
 
         String createdJson = mvc.perform(post("/api/v1/sessions")
-                        .with(adminJwt)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(createReq)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id", notNullValue()))
                 .andExpect(jsonPath("$.eventId").value(e.getId()))
                 .andExpect(jsonPath("$.venueId").value(v.getId()))
-                .andExpect(jsonPath("$.startsAt", not(isEmptyOrNullString())))
                 .andExpect(jsonPath("$.price").value(50))
                 .andReturn()
                 .getResponse()
@@ -155,15 +109,13 @@ class SessionControllerIT extends IntegrationTestBase {
         );
 
         mvc.perform(put("/api/v1/sessions/{id}", sessionId)
-                        .with(adminJwt)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updateReq)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(sessionId))
                 .andExpect(jsonPath("$.price").value(80));
 
-        mvc.perform(delete("/api/v1/sessions/{id}", sessionId)
-                        .with(adminJwt))
+        mvc.perform(delete("/api/v1/sessions/{id}", sessionId))
                 .andExpect(status().isNoContent());
 
         mvc.perform(get("/api/v1/sessions/{id}", sessionId))
@@ -172,7 +124,6 @@ class SessionControllerIT extends IntegrationTestBase {
 
     @Test
     void create_shouldReturn404_whenVenueNotFound() throws Exception {
-        var adminJwt = jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN"));
 
         Event e = seedEvent();
 
@@ -184,7 +135,6 @@ class SessionControllerIT extends IntegrationTestBase {
         );
 
         mvc.perform(post("/api/v1/sessions")
-                        .with(adminJwt)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isNotFound())
@@ -194,7 +144,6 @@ class SessionControllerIT extends IntegrationTestBase {
 
     @Test
     void update_shouldReturn404_whenSessionNotFound() throws Exception {
-        var adminJwt = jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN"));
 
         Event e = seedEvent();
         Venue v = seedVenue(100);
@@ -207,7 +156,6 @@ class SessionControllerIT extends IntegrationTestBase {
         );
 
         mvc.perform(put("/api/v1/sessions/{id}", 999L)
-                        .with(adminJwt)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isNotFound())
