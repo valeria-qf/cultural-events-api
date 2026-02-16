@@ -36,6 +36,9 @@ jobs:
           java-version: "21"
           cache: maven
 
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
       - name: Wait for Postgres
         run: |
           for i in {1..30}; do
@@ -56,6 +59,14 @@ jobs:
           SPRING_DATASOURCE_USERNAME: postgres
           SPRING_DATASOURCE_PASSWORD: postgres
         run: mvn -B clean test
+
+      - name: Publish test report (JUnit)
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: Unit & Integration Tests
+          path: target/surefire-reports/*.xml
+          reporter: java-junit
 
       - name: Upload JaCoCo report
         if: always()
