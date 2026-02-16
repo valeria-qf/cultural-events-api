@@ -1,13 +1,9 @@
 package br.edu.ifrn.eventsapi.cultural_events_api.integration;
 
 import br.edu.ifrn.eventsapi.cultural_events_api.dto.request.EventCreateRequest;
-import br.edu.ifrn.eventsapi.cultural_events_api.model.Role;
-import br.edu.ifrn.eventsapi.cultural_events_api.model.User;
 import br.edu.ifrn.eventsapi.cultural_events_api.repository.EventRepository;
 import br.edu.ifrn.eventsapi.cultural_events_api.repository.ReservationRepository;
 import br.edu.ifrn.eventsapi.cultural_events_api.repository.SessionRepository;
-import br.edu.ifrn.eventsapi.cultural_events_api.repository.UserRepository;
-import br.edu.ifrn.eventsapi.cultural_events_api.service.JwtService;
 import br.edu.ifrn.eventsapi.cultural_events_api.support.IntegrationTestBase;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -16,13 +12,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDate;
-import java.util.Map;
 
 import static org.hamcrest.Matchers.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -37,27 +33,11 @@ class EventControllerIT extends IntegrationTestBase {
     @Autowired SessionRepository sessionRepository;
     @Autowired ReservationRepository reservationRepository;
 
-    @Autowired UserRepository userRepository;
-    @Autowired PasswordEncoder passwordEncoder;
-    @Autowired JwtService jwtService;
-
     @BeforeEach
     void setup() {
         reservationRepository.deleteAll();
         sessionRepository.deleteAll();
         eventRepository.deleteAll();
-        userRepository.deleteAll();
-    }
-
-    private String bearer(Role role) {
-        String email = role.name().toLowerCase() + "@ifrn.edu.br";
-        userRepository.save(User.builder()
-                .name(role.name())
-                .email(email)
-                .passwordHash(passwordEncoder.encode("12345678"))
-                .role(role)
-                .build());
-        return "Bearer " + jwtService.generateToken(email, Map.of());
     }
 
     private EventCreateRequest createReq() {
@@ -80,10 +60,8 @@ class EventControllerIT extends IntegrationTestBase {
 
     @Test
     void create_shouldReturn403_forUserRole() throws Exception {
-        String auth = bearer(Role.USER);
-
         mvc.perform(post("/api/v1/events")
-                        .header("Authorization", auth)
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_USER")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(createReq())))
                 .andExpect(status().isForbidden());
@@ -91,10 +69,10 @@ class EventControllerIT extends IntegrationTestBase {
 
     @Test
     void crud_events_withAdmin() throws Exception {
-        String auth = bearer(Role.ADMIN);
+        var adminJwt = jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN"));
 
         String createdJson = mvc.perform(post("/api/v1/events")
-                        .header("Authorization", auth)
+                        .with(adminJwt)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(createReq())))
                 .andExpect(status().isCreated())
@@ -129,7 +107,7 @@ class EventControllerIT extends IntegrationTestBase {
         );
 
         mvc.perform(put("/api/v1/events/{id}", id)
-                        .header("Authorization", auth)
+                        .with(adminJwt)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updateReq)))
                 .andExpect(status().isOk())
@@ -141,7 +119,7 @@ class EventControllerIT extends IntegrationTestBase {
                 .andExpect(jsonPath("$.endDate").value("2026-03-02"));
 
         mvc.perform(delete("/api/v1/events/{id}", id)
-                        .header("Authorization", auth))
+                        .with(adminJwt))
                 .andExpect(status().isNoContent());
 
         mvc.perform(get("/api/v1/events/{id}", id))
@@ -150,7 +128,7 @@ class EventControllerIT extends IntegrationTestBase {
 
     @Test
     void update_shouldReturn404_whenEventNotFound() throws Exception {
-        String auth = bearer(Role.ADMIN);
+        var adminJwt = jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN"));
 
         var updateReq = new EventCreateRequest(
                 "Qualquer",
@@ -161,7 +139,7 @@ class EventControllerIT extends IntegrationTestBase {
         );
 
         mvc.perform(put("/api/v1/events/{id}", 999L)
-                        .header("Authorization", auth)
+                        .with(adminJwt)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updateReq)))
                 .andExpect(status().isNotFound())

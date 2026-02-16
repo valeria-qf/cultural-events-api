@@ -22,6 +22,9 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class ReservationServiceTest {
 
+    private static final String CUSTOMER_NAME = "Cliente 1";
+    private static final String CUSTOMER_EMAIL = "cliente@ifrn.edu.br";
+
     @Mock
     ReservationRepository reservationRepository;
 
@@ -34,8 +37,8 @@ class ReservationServiceTest {
     private ReservationCreateRequest req(Long sessionId, int qty) {
         return new ReservationCreateRequest(
                 sessionId,
-                "Cliente 1",
-                "cliente@ifrn.edu.br",
+                CUSTOMER_NAME,
+                CUSTOMER_EMAIL,
                 qty
         );
     }
@@ -62,8 +65,8 @@ class ReservationServiceTest {
         return Reservation.builder()
                 .id(id)
                 .session(session)
-                .customerName("Cliente 1")
-                .customerEmail("cliente@ifrn.edu.br")
+                .customerName(CUSTOMER_NAME)
+                .customerEmail(CUSTOMER_EMAIL)
                 .quantity(2)
                 .status(status)
                 .code(UUID.randomUUID())
@@ -89,7 +92,7 @@ class ReservationServiceTest {
                     return r;
                 });
 
-        ReservationResponse res = service.create(req(sessionId, 2));
+        ReservationResponse res = service.create(req(sessionId, 2), CUSTOMER_NAME, CUSTOMER_EMAIL);
 
         assertEquals(1L, res.id());
         assertEquals(sessionId, res.sessionId());
@@ -112,8 +115,10 @@ class ReservationServiceTest {
         when(reservationRepository.sumQuantityBySessionAndStatus(sessionId, ReservationStatus.ACTIVE))
                 .thenReturn(9L);
 
-        var ex = assertThrows(IllegalArgumentException.class,
-                () -> service.create(req(sessionId, 2)));
+        var ex = assertThrows(
+                IllegalArgumentException.class,
+                () -> service.create(req(sessionId, 2), CUSTOMER_NAME, CUSTOMER_EMAIL)
+        );
 
         assertEquals("Not enough seats. Available: 1", ex.getMessage());
 
@@ -126,7 +131,7 @@ class ReservationServiceTest {
     @Test
     @DisplayName("list deve retornar por email quando informado")
     void list_withEmail() {
-        String email = "cliente@ifrn.edu.br";
+        String email = CUSTOMER_EMAIL;
         Session s = session(1L, 100);
 
         when(reservationRepository.findByCustomerEmail(email))
